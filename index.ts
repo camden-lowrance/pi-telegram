@@ -637,44 +637,6 @@ export default function (pi: ExtensionAPI) {
 		return downloaded;
 	}
 
-	async function autoConfigure(ctx: ExtensionContext): Promise<boolean> {
-		const envToken = process.env.PI_TELEGRAM_BOT_TOKEN?.trim();
-		if (!envToken) return false;
-
-		try {
-			const response = await fetch(`https://api.telegram.org/bot${envToken}/getMe`);
-			const data = (await response.json()) as TelegramApiResponse<TelegramUser>;
-			if (!data.ok || !data.result) {
-				ctx.ui.notify(`PI_TELEGRAM_BOT_TOKEN is invalid: ${data.description}`, "error");
-				return false;
-			}
-
-			config = {
-				...config,
-				botToken: envToken,
-				botId: data.result.id,
-				botUsername: data.result.username,
-			};
-
-			const envUserId = process.env.PI_TELEGRAM_AUTHORIZED_USER_ID?.trim();
-			if (envUserId) {
-				const parsed = parseInt(envUserId, 10);
-				if (!isNaN(parsed) && parsed > 0) {
-					config.allowedUserId = parsed;
-				}
-			}
-
-			await writeConfig(config);
-			await startPolling(ctx);
-			updateStatus(ctx);
-			return true;
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			ctx.ui.notify(`Telegram auto-config failed: ${message}`, "error");
-			return false;
-		}
-	}
-
 	async function promptForConfig(ctx: ExtensionContext): Promise<void> {
 		if (!ctx.hasUI || setupInProgress) return;
 		setupInProgress = true;
@@ -1042,11 +1004,7 @@ export default function (pi: ExtensionAPI) {
 		handler: async (_args, ctx) => {
 			config = await readConfig();
 			if (!config.botToken) {
-				// Try env var auto-config first, fall back to interactive prompt
-				const autoConfigured = await autoConfigure(ctx);
-				if (!autoConfigured) {
-					await promptForConfig(ctx);
-				}
+				await promptForConfig(ctx);
 				return;
 			}
 			await startPolling(ctx);
@@ -1065,15 +1023,6 @@ export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		config = await readConfig();
 		await mkdir(TEMP_DIR, { recursive: true });
-
-		// Auto-configure from PI_TELEGRAM_BOT_TOKEN env var if not already configured
-		if (!config.botToken) {
-			await autoConfigure(ctx);
-		} else if (!pollingPromise) {
-			// Auto-connect if already configured (from previous session)
-			await startPolling(ctx);
-		}
-
 		updateStatus(ctx);
 	});
 

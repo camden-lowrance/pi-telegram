@@ -29,18 +29,7 @@ pi -e git:github.com/badlogic/pi-telegram
 3. Pick a name and username
 4. Copy the bot token
 
-### Quick: environment variables (no slash commands)
-
-Set these before starting pi:
-
-```bash
-export PI_TELEGRAM_BOT_TOKEN="123456:ABC..."
-export PI_TELEGRAM_AUTHORIZED_USER_ID="123456789"  # optional, pre-authorize your account
-```
-
-The bridge auto-connects on startup. No `/telegram-setup` or `/telegram-connect` needed.
-
-### Manual: slash commands
+### pi
 
 Start pi, then run:
 
@@ -50,15 +39,20 @@ Start pi, then run:
 
 Paste the bot token when prompted.
 
-The extension stores config in:
+Config is stored in `~/.pi/agent/telegram.json` and persists across sessions:
 
-```text
-~/.pi/agent/telegram.json
+```json
+{
+    "botToken": "123456:ABC...",
+    "botId": 123456789,
+    "botUsername": "my_bot",
+    "allowedUserId": 123456789
+}
 ```
 
-## Connect a pi session
+You can also create this file manually instead of using `/telegram-setup`.
 
-If you set `PI_TELEGRAM_BOT_TOKEN`, the bridge connects automatically on startup. Otherwise:
+## Connect a pi session
 
 The Telegram bridge is session-local. Connect it only in the pi session that should own the bot:
 
